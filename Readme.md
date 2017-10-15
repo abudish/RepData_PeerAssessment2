@@ -1,4 +1,4 @@
-Instructions
+Readme
 ================
 
 Instructions for Peer-graded Assignment, Project 2 of Reproducible Research Course (Data Science - JHU)
