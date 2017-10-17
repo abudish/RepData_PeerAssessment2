@@ -7,24 +7,52 @@ output: html_notebook
 
 ## 1. Synopsis
 
-## 2. Data Processing
-@
+## 2. Data Processing  
+
+#### Set global options for knitr:
 ```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+#### Display when and on what system analysis was performed:
+```{r date}
+dateDownloaded <- date()
+dateDownloaded
+```
+
+```{r system_info}
+system_info <- sessionInfo()
+system_info
+```
+
+#### Download storm dataset and extract related csv file:  
+```{r download}
+dlMethod <- "curl" # sets default for OSX / Linux
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+if(substr(Sys.getenv("OS"),1,7) == "Windows") dlMethod <- "wininet"
+
+if(!file.exists("StormData.csv.bz2")) {
+  download.file(url,
+                "StormData.csv.bz2",  # stores file in R working directory
+                method=dlMethod # use OS-appropriate method
+                )
+}
+```
+
+#### Read csv file from bz2 archive:
+```{r extract}
+storm <- read.csv(bzfile("StormData.csv.bz2"))
+```
 
 ## 3. Results
 
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
-```{r}
-plot(cars)
-```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+Add a new chunk  *Ctrl+Alt+I*.
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+*Preview* button or press *Ctrl+Shift+K* to preview the HTML file.
+
