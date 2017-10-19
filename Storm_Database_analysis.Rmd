@@ -1,0 +1,93 @@
+---
+title: "Storm Database analysis"
+output:
+  html_notebook:
+    highlight: tango
+    theme: united
+    toc: yes
+---
+
+
+
+## 1. Synopsis
+
+## 2. Data Processing  
+
+**Set global options for knitr:**
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+**Display when and on what system analysis was performed:**  
+```{r date}
+dateDownloaded <- date()
+dateDownloaded
+```
+
+```{r system_info}
+system_info <- sessionInfo()
+system_info
+```
+
+**Download storm dataset and archive:**  
+```{r download}
+dlMethod <- "curl" # sets default for OSX / Linux
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+if(substr(Sys.getenv("OS"),1,7) == "Windows") dlMethod <- "wininet"
+
+if(!file.exists("StormData.csv.bz2")) {
+  download.file(url,
+                "StormData.csv.bz2",  # stores file in R working directory
+                method=dlMethod # use OS-appropriate method
+                )
+}
+```
+
+**Read csv file from bz2 archive:**
+```{r extract}
+storm <- read.csv(bzfile("StormData.csv.bz2"), stringsAsFactors = F)
+```
+
+**Data transformations:** 
+Transform data table to a tible:
+```{r tbl}
+library(dplyr)
+storm <- as.tbl(storm)
+```
+
+Leave only variables related type of disaster, time of an event, state where catastrophy happened, population health (fatalities, injuries) and economic damage (property, crop):
+```{r subset_data}
+storm_subset <- storm %>% select(EVTYPE, BGN_DATE, STATE, FATALITIES, INJURIES, PROPDMG, CROPDMG)
+```
+
+Change variables to appropriate formats:
+```{r var_types}
+# Type of the disaster
+storm_subset$EVTYPE <- as.factor(storm_subset$EVTYPE)
+
+# Date when event happened
+    # used 'CST' timezone, because it is most common in the dataset 
+    # check it: storm$TIME_ZONE %>% table()
+library(lubridate, verbose = F)
+storm_subset$BGN_DATE <- storm_subset$BGN_DATE %>% 
+    strptime(format = "%m/%d/%Y %H:%M:%S", tz = "CST") %>%
+    as.POSIXct() %>% 
+    year()
+
+# State where the event happened
+storm_subset$STATE <- as.factor(storm_subset$STATE)
+```
+
+
+## 3. Results
+
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+
+Add a new chunk  *Ctrl+Alt+I*.
+
+*Preview* button or press *Ctrl+Shift+K* to preview the HTML file.
+
