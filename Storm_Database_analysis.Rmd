@@ -1,5 +1,7 @@
 ---
-title: "Storm Database analysis"
+title: "Storm Database analysis: most devastating events in the United States, years 1952 - 2011"
+author: Andrey Budish
+date: 2017-02-20
 output:
   html_notebook:
     highlight: tango
@@ -10,16 +12,24 @@ output:
 
 
 ## 1. Synopsis
+Analysis showed the 5 most devastating health related events were: tornado (96979 total casualties), excessive heat (8428), tsunami wind (7461), flood (7259) and lightning (6046).  
+Specifically, the top 5 most devastating events related to injuries: tornado, tsunami wind, flood, excessive heat and lightning;
+the top 5 most damaging related to fatalities: tornado, excessive heat, flash flood, heat and lightning.  
+
+As for top 5 events related to the greatest economic consequences, those were: tornado (3312277), flash flood (1599325), tsunami wind (1445168), hail (1268290) and flood (1067976).  
+Specifically, the top 5 most damaging related to property: tornado, flash flood, tsunami wind, flood and thunderstorm wind;
+the top 5 most devastating related to crops: hail, flash flood, flood, tsunami wind and tornado.
+
 
 ## 2. Data Processing  
 
-**Set global options for knitr:**
+#### Set global options for knitr:
 ```{r setup, include=TRUE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.width=8, fig.height=6)
 ```
 
 
-**Display when and on what system analysis was performed:**  
+#### Display when and on what system analysis was performed:  
 ```{r date}
 dateDownloaded <- date()
 dateDownloaded
@@ -30,7 +40,7 @@ system_info <- sessionInfo()
 system_info
 ```
 
-**Download storm dataset and archive:**  
+#### Download storm dataset and archive:  
 ```{r download}
 dlMethod <- "curl" # sets default for OSX / Linux
 url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
@@ -44,19 +54,19 @@ if(!file.exists("StormData.csv.bz2")) {
 }
 ```
 
-**Read csv file from bz2 archive:**
+#### Read csv file from bz2 archive:
 ```{r extract}
 storm <- read.csv(bzfile("StormData.csv.bz2"), stringsAsFactors = F)
 ```
 
-**Data transformations:** 
-Transform data table to a tible:
+#### Data transformations: 
+Transform data table to a tibble:
 ```{r tbl}
 library(dplyr)
 storm <- as.tbl(storm)
 ```
 
-Leave only variables related type of disaster, time of an event, state where catastrophy happened, population health (fatalities, injuries) and economic damage (property, crop):
+Leave only variables related to type of disaster, time of event, state where catastrophe happened, population health (fatalities, injuries) and economic damage (property, crop):
 ```{r subset_data}
 storm_subset <- storm %>% select(EVTYPE, BGN_DATE, STATE, FATALITIES, INJURIES, PROPDMG, CROPDMG)
 ```
@@ -68,26 +78,166 @@ storm_subset$EVTYPE <- as.factor(storm_subset$EVTYPE)
 
 # Date when event happened
     # used 'CST' timezone, because it is most common in the dataset 
-    # check it: storm$TIME_ZONE %>% table()
+    # check it: storm$TIME_ZONE %>% table()  
 library(lubridate, verbose = F)
 storm_subset$BGN_DATE <- storm_subset$BGN_DATE %>% 
     strptime(format = "%m/%d/%Y %H:%M:%S", tz = "CST") %>%
     as.POSIXct() %>% 
-    year()
+    year()  
 
 # State where the event happened
 storm_subset$STATE <- as.factor(storm_subset$STATE)
 ```
 
+Change variable names:
+```{r var_names}
+names(storm_subset) <-  tolower(names(storm_subset))
+storm_subset <-  storm_subset %>% 
+    rename(event_type = evtype, year = bgn_date, property_damage = propdmg, crop_damage = cropdmg)
+```  
+
+Take a look at the current tibble:
+```{r first_look}
+storm_subset
+```
+
+The data is not tidy. It is messy because column headers are values, not variable names.
+To fix it let's create `damage_type` and `damage` variables using `gather()` from `tidyr`:
+```{r tidy}
+library(tidyr)
+storm_tidy <- storm_subset %>% 
+    gather(key = damage_type, value = damage, -(event_type:state))
+```
+Let's take a look at tidy storm dataset:
+```{r tidy_look}
+storm_tidy
+```
+
+
+
+Split tidy tibble into two - one related to health damages (fatalities, injuries), another related to economic damages (property and crop damage):
+```{r two_tibbles}
+storm_health <- storm_tidy %>% filter(damage_type %in% c("fatalities", "injuries"))
+storm_economic <- storm_tidy %>% filter(damage_type %in% c("property_damage", "crop_damage"))
+```
+Let's take a look at those tables:
+```{r tidy_tibbles_look}
+head(storm_health, 3)
+head(storm_economic, 3)
+```
+Need to change `damage_type` in both tibbles to factor for further analysis:
+```{r factor_damage_type}
+storm_health$damage_type <- as.factor(storm_health$damage_type)
+storm_economic$damage_type <- as.factor(storm_economic$damage_type)
+```
+
 
 ## 3. Results
+First, let's answer this question:  
 
+> 1. Across the United States, which types of events (as indicated in the `EVTYPE` variable) are most harmful with respect to population health?  
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+Looking at top 5 most damaging events related to health:
+```{r top5_health_damage}
+storm_health %>%
+    group_by(event_type) %>%
+    summarise(total_damage = sum(damage)) %>%
+    arrange(desc(total_damage)) %>%
+    head(5)
+```
 
+Let's build plot to compare top 5 most harmful events related to fatalities and injuries:
+```{r top5_health_plot}
+library(ggplot2)
+library(ggthemes)
 
+# Create a tibble with 5 most harful event related to fatalities
+top5_fatalities <- storm_health %>% 
+    filter(damage_type == "fatalities") %>% 
+    group_by(event_type, damage_type) %>%
+    summarise(total_damage = sum(damage)) %>%
+    arrange(desc(total_damage)) %>%
+    head(5)
 
-Add a new chunk  *Ctrl+Alt+I*.
+# Create a tibble with 5 most harful event related to injuries
+top5_injuries <- storm_health %>% 
+    filter(damage_type == "injuries") %>% 
+    group_by(event_type, damage_type) %>%
+    summarise(total_damage = sum(damage)) %>%
+    arrange(desc(total_damage)) %>%
+    head(5)
 
-*Preview* button or press *Ctrl+Shift+K* to preview the HTML file.
+# Combine two tibbles into one
+top5_health <- bind_rows(top5_injuries, top5_fatalities)
 
+# Reorder levels of damage_type, to display injuries first
+top5_health$damage_type <-  factor(top5_health$damage_type, levels = c("injuries", "fatalities"))
+
+# Plot stack bar plot
+top5_health %>% 
+    ggplot(aes(x = damage_type, y = total_damage, fill=event_type)) +
+        geom_col() +
+        scale_y_continuous(limits = c(0, 120000), breaks = seq(0, 120000, 20000)) +
+        scale_fill_brewer(palette="Accent") +
+        labs(x = "Type of health related damage",
+             y = "Total damage (casualties)",
+             fill = "Type of disaster") +
+        ggtitle("Top 5 most harmful population health events in US: Injuries vs Fatalities", subtitle = "Years 1952 - 2011") +
+        ggplot2::theme_classic()
+```
+
+And the second question: 
+
+> 2. Across the United States, which types of events have the greatest economic consequences?   
+
+Top 5 most damaging events related to economics:
+```{r top5_economics_damage}
+storm_economic %>%
+    group_by(event_type) %>%
+    summarise(total_damage = sum(damage)) %>%
+    arrange(desc(total_damage)) %>%
+    head(5)
+```
+
+Let's build plots to compare top 5 most harmful events related to property and health damages:
+```{r top5_economics_plot}
+library(ggplot2)
+library(ggthemes)
+
+# Create a tibble with 5 most harful event related to property damage
+top5_prop_damage <- storm_economic %>% 
+    filter(damage_type == "property_damage") %>% 
+    group_by(event_type, damage_type) %>%
+    summarise(total_damage = sum(damage)) %>%
+    arrange(desc(total_damage)) %>%
+    head(5)
+
+# Create a tibble with 5 most harful event related to crop damage
+top5_crop_damage <- storm_economic %>% 
+    filter(damage_type == "crop_damage") %>% 
+    group_by(event_type, damage_type) %>%
+    summarise(total_damage = sum(damage)) %>%
+    arrange(desc(total_damage)) %>%
+    head(5)
+
+# Combine two tibbles into one
+top5_economics <- bind_rows(top5_prop_damage, top5_crop_damage)
+
+# Reorder levels of damage_type, to display property damage first
+top5_economics$damage_type <-  factor(top5_economics$damage_type, levels = c("property_damage", "crop_damage"))
+
+# Turn off scientific notation
+options(scipen=999)
+
+# Plot stack bar plot
+top5_economics %>% 
+    ggplot(aes(x = damage_type, y = total_damage, fill=event_type)) +
+        geom_col() +
+        scale_y_continuous(limits = c(0, 8000000), breaks = seq(0, 8000000, 1000000)) +
+        scale_fill_brewer(palette="Accent") +
+        labs(x = "Type of economic related damage",
+             y = "Total damage",
+             fill = "Type of disaster") +
+        ggtitle("Top 5 most economicly damaging events in US: Property vs Crop", subtitle = "Years 1952 - 2011") +
+        ggplot2::theme_classic()
+```
