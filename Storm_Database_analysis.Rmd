@@ -1,5 +1,5 @@
 ---
-title: "Storm Database analysis: most devastating events in the United States, years 1952 - 2011"
+title: "Storm Database analysis: most devastating events in the United States, years 1950 - 2011"
 author: Andrey Budish
 date: 2017-02-20
 output:
@@ -16,7 +16,7 @@ Analysis showed the 5 most devastating health related events were: tornado (9697
 Specifically, the top 5 most devastating events related to injuries: tornado, tsunami wind, flood, excessive heat and lightning;
 the top 5 most damaging related to fatalities: tornado, excessive heat, flash flood, heat and lightning.  
 
-As for top 5 events related to the greatest economic consequences, those were: tornado (3312277), flash flood (1599325), tsunami wind (1445168), hail (1268290) and flood (1067976).  
+As for top 5 events related to the greatest economic consequences, those were: tornado (3312277 thousands of dollars), flash flood (1599325), tsunami wind (1445168), hail (1268290) and flood (1067976).  
 Specifically, the top 5 most damaging related to property: tornado, flash flood, tsunami wind, flood and thunderstorm wind;
 the top 5 most devastating related to crops: hail, flash flood, flood, tsunami wind and tornado.
 
@@ -182,7 +182,7 @@ top5_health %>%
         labs(x = "Type of health related damage",
              y = "Total damage (casualties)",
              fill = "Type of disaster") +
-        ggtitle("Top 5 most harmful population health events in US: Injuries vs Fatalities", subtitle = "Years 1952 - 2011") +
+        ggtitle("Top 5 most harmful population health events in US: Injuries vs Fatalities", subtitle = "Years 1950 - 2011") +
         ggplot2::theme_classic()
 ```
 
@@ -236,8 +236,8 @@ top5_economics %>%
         scale_y_continuous(limits = c(0, 8000000), breaks = seq(0, 8000000, 1000000)) +
         scale_fill_brewer(palette="Accent") +
         labs(x = "Type of economic related damage",
-             y = "Total damage",
+             y = "Total damage (thousands of dollars)",
              fill = "Type of disaster") +
-        ggtitle("Top 5 most economicly damaging events in US: Property vs Crop", subtitle = "Years 1952 - 2011") +
+        ggtitle("Top 5 most economicly damaging events in US: Property vs Crop", subtitle = "Years 1950 - 2011") +
         ggplot2::theme_classic()
 ```
